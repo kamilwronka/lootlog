@@ -1,108 +1,53 @@
 import { DraggableWindow } from "@/components/draggable-window";
-import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useGlobalContext } from "@/contexts/global-context";
-import { useAuth0 } from "@auth0/auth0-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useGuilds } from "@/hooks/api/use-guilds";
 
 export const Settings = () => {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { isAuthenticated, loginWithPopup, loginWithRedirect, logout } =
-    useAuth0();
-  const { timersOpen, setTimersOpen, newInterface } = useGlobalContext();
-  const [isWidgetLoaded, setisWidgetLoaded] = useState(false);
-
-  const handleLogin = () => {
-    loginWithPopup();
-    // loginWithRedirect();
-  };
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  const handleTimersToggle = () => {
-    setTimersOpen(!timersOpen);
-  };
-
-  const handleSettingsOpen = useCallback(() => {
-    setIsSettingsOpen((prev) => !prev);
-  }, []);
-
-  const handleSettingsOpenRef = useRef(handleSettingsOpen);
-
-  useEffect(() => {
-    handleSettingsOpenRef.current = handleSettingsOpen;
-  }, [handleSettingsOpen]);
-
-  useEffect(() => {
-    if (newInterface && !isWidgetLoaded) {
-      const serverStoragePos = window.Engine.serverStorage.get(
-        window.Engine.widgetManager.getPathToHotWidgetVersion()
-      );
-
-      var emptySlot = window.Engine.widgetManager.getFirstEmptyWidgetSlot();
-      let emptyWidgetSlot = [emptySlot.slot, emptySlot.container];
-      let lootlog_WidgetPosition = serverStoragePos?.lootlog
-        ? serverStoragePos.lootlog
-        : emptyWidgetSlot;
-
-      window.Engine.widgetManager.getDefaultWidgetSet().lootlog = {
-        keyName: "lootlog",
-        index: lootlog_WidgetPosition[0],
-        pos: lootlog_WidgetPosition[1],
-        txt: "Lootlog",
-        type: "violet",
-        alwaysExist: true,
-        default: true,
-        clb: () => handleSettingsOpenRef.current(),
-      };
-
-      window.Engine.widgetManager.createOneWidget(
-        "lootlog",
-        { lootlog: lootlog_WidgetPosition },
-        true,
-        []
-      );
-      window.Engine.widgetManager.setEnableDraggingButtonsWidget(false);
-
-      let iconStyle = document.createElement("style");
-      iconStyle.innerHTML = `.main-buttons-container .widget-button .icon.lootlog {
-          background-image: url("https://i.imgur.com/BUCxHlv.png");
-          background-position: 50% 50%;
-      }`;
-      document.head.appendChild(iconStyle);
-      setisWidgetLoaded(true);
-    }
-  }, [newInterface, isWidgetLoaded]);
+  const {
+    setSettingsWindowOpen,
+    settingsWindowOpen,
+    selectedGuild,
+    setSelectedGuild,
+  } = useGlobalContext();
+  const { data: guilds } = useGuilds();
 
   return (
-    <>
-      {!newInterface && (
-        <DraggableWindow id="settings-trigger">
-          <div className="ll-bg-black ll-text-white ll-flex">
-            <Button onClick={() => setIsSettingsOpen(!isSettingsOpen)}>
-              Lootlog
-            </Button>
-            <div>drag</div>
-          </div>
-        </DraggableWindow>
-      )}
-      {isSettingsOpen && (
-        <DraggableWindow id="settings-window">
-          <div className="ll-bg-black ll-text-white ll-w-96">
-            <div>Ustawienia</div>
-            <div>
-              <Button onClick={handleTimersToggle}>Pokaż/ukryj timery</Button>
-              {!isAuthenticated && (
-                <Button onClick={handleLogin}>Zaloguj się</Button>
-              )}
-              {isAuthenticated && (
-                <Button onClick={handleLogout}>Wyloguj się</Button>
-              )}
-            </div>
-          </div>
-        </DraggableWindow>
-      )}
-    </>
+    settingsWindowOpen && (
+      <DraggableWindow
+        id="settings"
+        title="Ustawienia"
+        onClose={() => setSettingsWindowOpen(false)}
+      >
+        <div className="ll-pt-2">
+          <label className="ll-text-white ll-text-[11px] ll-pl-1">
+            Wybierz lootlog:
+          </label>
+          <Select value={selectedGuild} onValueChange={setSelectedGuild}>
+            <SelectTrigger className="w-[180px] ll-text-white ll-text-xs ll-border-white ll-rounded-sm ll-h-4 ll-my-1">
+              <SelectValue
+                placeholder="Wybierz lootlog..."
+                className="ll-h-4 ll-text-sm ll-text-white"
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {guilds?.map((guild) => {
+                return (
+                  <SelectItem key={guild.id} value={guild.id}>
+                    {guild.name}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      </DraggableWindow>
+    )
   );
 };

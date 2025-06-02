@@ -1,18 +1,29 @@
-import { useAuth0 } from "@auth0/auth0-react";
-import { useEffect, useState } from "react";
+import { useSession } from "@/hooks/auth/use-session";
+import { useQuery } from "@tanstack/react-query";
 
 export const useAuthToken = () => {
-  const [token, setToken] = useState<string | null>(null);
+  const session = useSession();
+  const isAuthenticated = !!session.data;
+  const sessionToken = session.data?.session.token;
 
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      getAccessTokenSilently().then((token) => {
-        setToken(token);
+  const query = useQuery({
+    queryKey: ["auth-token"],
+    enabled: isAuthenticated && !!sessionToken,
+    select: (data: { token: string }) => data.token,
+    queryFn: async () => {
+      const response = await fetch("http://localhost/api/auth/idp/token", {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
       });
-    }
-  }, [isAuthenticated, getAccessTokenSilently]);
 
-  return token;
+      if (!response.ok) {
+        throw new Error("Failed to fetch auth token");
+      }
+
+      return response.json();
+    },
+  });
+
+  return query;
 };

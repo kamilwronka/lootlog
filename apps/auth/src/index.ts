@@ -1,7 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { APP_CONFIG } from "./config/app.config.js";
-import { cors } from "hono/cors";
 import { auth } from "./lib/auth.js";
 import { logger } from "hono/logger";
 import type { JwksKeys } from "@lootlog/api-helpers/lib/auth/utils/verify-jwt.types";
@@ -15,17 +14,6 @@ const app = new Hono<{
 }>();
 
 app.use("*", logger());
-// app.use(
-//   "*",
-//   cors({
-//     origin: "http://localhost", // replace with your origin
-//     allowHeaders: ["Content-Type", "Authorization"],
-//     allowMethods: ["POST", "GET", "OPTIONS"],
-//     exposeHeaders: ["Content-Length"],
-//     maxAge: 600,
-//     credentials: true,
-//   })
-// );
 
 app.use("*", async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -72,6 +60,7 @@ app.get("/verify-auth", async (c) => {
   }
 
   const authorizationHeader = c.req.raw.headers.get("authorization");
+
   if (!authorizationHeader) return c.body(null, 401);
 
   const token = authorizationHeader.replace("Bearer ", "");
@@ -83,8 +72,8 @@ app.get("/verify-auth", async (c) => {
     ({ discordId, userId } = await validateToken({
       token,
       jwks,
-      issuer: APP_CONFIG.auth.appUrl,
-      audience: APP_CONFIG.auth.appUrl,
+      issuer: APP_CONFIG.appUrl,
+      audience: APP_CONFIG.appUrl,
     }));
   } catch (e) {
     console.error("Error validating token", (e as Error)?.message || e);
@@ -99,13 +88,13 @@ app.get("/verify-auth", async (c) => {
   return c.json({ status: "OK" });
 });
 
-app.on(["POST", "GET"], "/api/auth/**", (c) => {
+app.on(["POST", "GET"], "/idp/**", async (c) => {
   return auth.handler(c.req.raw);
 });
 
 const port = APP_CONFIG.port;
 
-console.log(`Server is running on http://localhost:${port}`);
+console.log(`Server is running on ${APP_CONFIG.appUrl}`);
 
 serve({
   fetch: app.fetch,

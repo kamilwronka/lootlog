@@ -2,13 +2,11 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { CreateLootDto } from 'src/loots/dto/create-loot.dto';
 import { createHash } from 'crypto';
 import { FetchLootsParamsDto } from 'src/loots/dto/fetch-loots-params.dto';
 import {
-  DEFAULT_OFFSET,
   DEFAULT_PAGE_LIMIT,
   MAX_PAGE_LIMIT,
 } from 'src/loots/config/pagination';
@@ -22,16 +20,11 @@ import { Prisma } from '@prisma/client';
 import {
   ItemRarity,
   Profession,
-  ItemType,
-  NpcType,
   Permission,
-  // Item,
-  LootlogConfig,
   LootlogConfigNpc,
 } from '@prisma/client';
 import { getProfByShortname } from 'src/shared/utils/get-prof-by-shortname';
 import { getItemTypeByCl } from 'src/shared/utils/get-item-type-by-cl';
-import { UsersService } from 'src/users/users.service';
 import { GuildsService } from 'src/guilds/guilds.service';
 
 @Injectable()
@@ -44,14 +37,13 @@ export class LootsService {
     private readonly lootlogConfigService: LootlogConfigService,
   ) {}
 
-  async createLoot(userId: string, body: CreateLootDto) {
+  async createLoot(discordId: string, body: CreateLootDto) {
     if (body.loots.length > 10) {
-      console.log('too many loots', JSON.stringify(body));
       throw new BadRequestException('TOO MANY LOOTS');
     }
 
     const guilds = await this.guildsService.getGuildsForRequiredPermissions(
-      userId,
+      discordId,
       [Permission.LOOTLOG_WRITE],
     );
     if (guilds.length === 0) {
@@ -66,7 +58,7 @@ export class LootsService {
         guildId: {
           in: guildIds,
         },
-        userId,
+        userId: discordId,
       },
     });
 
@@ -109,7 +101,7 @@ export class LootsService {
         memberId: member.id,
         npcs,
         players,
-        loots: calculatedLoot,
+        items: calculatedLoot,
       });
 
       return acc;
@@ -117,10 +109,8 @@ export class LootsService {
 
     if (data.length === 0) return;
 
-    console.log(data);
-
-    this.playersService.bulkIndexPlayers(players);
-    this.npcsService.bulkIndexNpcs(npcs);
+    // this.playersService.bulkIndexPlayers(players);
+    // this.npcsService.bulkIndexNpcs(npcs);
 
     try {
       await this.prisma.loot.createMany({
@@ -190,7 +180,7 @@ export class LootsService {
         ? Prisma.sql`
         AND EXISTS (
         SELECT 1
-        FROM jsonb_array_elements("loots") AS loot
+        FROM jsonb_array_elements("items") AS loot
         WHERE loot->>'rarity' = ANY(ARRAY[${Prisma.join(rarities)}]::text[])
         )`
         : Prisma.sql``;

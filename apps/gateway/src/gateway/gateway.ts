@@ -1,9 +1,4 @@
-import {
-  UseFilters,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Inject, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   BaseWsExceptionFilter,
   ConnectedSocket,
@@ -13,22 +8,34 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket as SocketIOSocket } from 'socket.io';
-import { WsAuthzGuard } from 'src/authz/ws-authz.guard';
 import { InitDto } from 'src/gateway/dto/init.dto';
 import { JoinDto } from 'src/gateway/dto/join.dto';
 import { RequestServerPresenceDto } from 'src/gateway/dto/request-server-presence.dto';
 import { GatewayEvent } from 'src/gateway/enums/gateway-event.enum';
 import { UserPresenceStatus } from 'src/gateway/enums/user-presence-status.enum';
 import { WsUserId } from 'src/shared/decorators/user-id.decorator';
+import { JWK, jwtVerify } from 'jose';
+import { ConfigService } from '@nestjs/config';
+import { ConfigKey } from 'src/config/config-key.enum';
+import { AuthConfig } from 'src/config/auth.config';
 
 type Socket = SocketIOSocket & { user: any };
 
-@WebSocketGateway()
+@WebSocketGateway({
+  namespace: 'gateway',
+  path: '/socket.io',
+  pingInterval: 25000,
+  pingTimeout: 60000,
+})
 export class Gateway {
+  constructor(
+    @Inject('JOSE') private jose: { keyset: JWK },
+    private configService: ConfigService,
+  ) {}
+
   @WebSocketServer()
   server: Server;
 
-  @UseGuards(WsAuthzGuard)
   handleConnection(client: Socket) {
     console.log('client connected');
 
@@ -44,18 +51,26 @@ export class Gateway {
     });
   }
 
-  @UseGuards(WsAuthzGuard)
   @SubscribeMessage(GatewayEvent.INIT)
-  handleInit(
+  async handleInit(
     @ConnectedSocket() client: Socket,
-    @MessageBody() { user }: InitDto,
-  ): any {
-    if (!user.sub) {
+    @MessageBody() { token }: InitDto,
+  ): Promise<any> {
+    const { authAudience, authIssuer } = this.configService.get<AuthConfig>(
+      ConfigKey.AUTH,
+    );
+
+    const { payload } = await jwtVerify(token, this.jose.keyset, {
+      issuer: authIssuer,
+      audience: authAudience,
+    });
+
+    if (!payload.discordId) {
       return client.disconnect();
     }
 
     client.user = {
-      id: user.sub,
+      id: payload.discordId,
       sessionId: client.id,
       status: UserPresenceStatus.ONLINE,
     };
@@ -77,8 +92,6 @@ export class Gateway {
       name,
       source,
     };
-
-    // if (client.rooms.has(guildId)) return;
 
     client.join(guildIds);
 

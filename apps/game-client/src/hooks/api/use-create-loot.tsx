@@ -1,0 +1,45 @@
+import { useMutation } from "@tanstack/react-query";
+import { Item } from "@/types/margonem/game-events/item";
+import { KilledNpc, PartyMember } from "@/utils/game/get-battle-participants";
+import { useAuthenticatedApiClient } from "@/hooks/api/use-api-client";
+
+export type LootDto = {
+  id: number;
+  hid: string;
+  icon: string;
+  name: string;
+  pr: number;
+  prc: string;
+  stat: string;
+  cl: number;
+};
+
+export type CreateLootOptions = {
+  loots: LootDto[];
+};
+
+export type UseCreateLootOptions = {
+  npcs: KilledNpc[];
+  players: PartyMember[];
+  loots: Partial<Item>[];
+  world: string;
+};
+
+export const useCreateLoot = () => {
+  const { client } = useAuthenticatedApiClient();
+
+  const mutation = useMutation({
+    mutationKey: ["create-loot"],
+    mutationFn: (options: UseCreateLootOptions) => {
+      return client.post("/loots", options);
+    },
+    onSuccess: () => {
+      console.log("onSuccess");
+    },
+    onError: () => {
+      console.log("onError");
+    },
+  });
+
+  return mutation;
+};

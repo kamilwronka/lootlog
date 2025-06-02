@@ -1,3 +1,4 @@
+import { TimerTile } from "@/features/timers/components/timer-tile";
 import { Timer, useTimers } from "@/hooks/api/use-timers";
 import { cn } from "@/lib/utils";
 import { parseMsToTime } from "@/utils/parse-ms-to-time";
@@ -37,12 +38,13 @@ const NPC_NAMES: { [key: string]: { shortname: string; longname: string } } = {
 };
 
 const THRESHOLD = 30000;
+const ZERO_SHOW_THRESHOLD = 15000;
 
-export const SingleTimer: FC<SingleTimerProps> = ({ timer, guildId }) => {
+export const SingleTimer: FC<SingleTimerProps> = ({ timer }) => {
   const maxSpawnTime = new Date(timer.maxSpawnTime).getTime();
   const minSpawnTime = new Date(timer.minSpawnTime).getTime();
 
-  const { refetch } = useTimers({ guildId });
+  const { refetch } = useTimers();
   const [timeLeft, setTimeLeft] = useState(maxSpawnTime - Date.now());
 
   useEffect(() => {
@@ -50,8 +52,11 @@ export const SingleTimer: FC<SingleTimerProps> = ({ timer, guildId }) => {
       const time = maxSpawnTime - Date.now();
 
       if (time <= 0) {
-        clearInterval(interval);
         setTimeLeft(0);
+      }
+
+      if (time <= -ZERO_SHOW_THRESHOLD) {
+        clearInterval(interval);
         refetch();
 
         return;
@@ -74,38 +79,34 @@ export const SingleTimer: FC<SingleTimerProps> = ({ timer, guildId }) => {
       </span>
       <i>${NPC_NAMES[timer.npc.type].longname}</i>
       <br />
-      <span className="elite_timer_tip_date">
-       Max: ${format(new Date(timer.maxSpawnTime), "dd.MM.yyyy - HH:mm:ss")}
-        </span>
-        <br />
         <span className="elite_timer_tip_date">
        Min: ${format(new Date(timer.minSpawnTime), "dd.MM.yyyy - HH:mm:ss")}
+        </span>
+        <br />
+              <span className="elite_timer_tip_date">
+       Max: ${format(new Date(timer.maxSpawnTime), "dd.MM.yyyy - HH:mm:ss")}
         </span>
       `
     );
   }, []);
 
   return (
-    <div
-      className={cn("row tw-list-item do-action-cursor", {
-        short: isMinSpawnTime,
-        pass: hasPassedRedThreshold,
-      })}
-      id={timer.npc.id.toString()}
-    >
-      <div className="col">
-        <div className="name cell">
-          <div className="name-val">
-            [{NPC_NAMES[timer.npc.type].shortname}] {timer.npc.name}
-          </div>
+    <TimerTile id={timer.npc.id.toString()}>
+      <div
+        className={cn(
+          "ll-flex ll-justify-between ll-w-full ll-text-[11px]  ll-px-1",
+          {
+            "ll-text-red-500": hasPassedRedThreshold,
+            "ll-text-orange-400": isMinSpawnTime,
+            "ll-text-white": !hasPassedRedThreshold && !isMinSpawnTime,
+          }
+        )}
+      >
+        <div>
+          [{NPC_NAMES[timer.npc.type].shortname}] {timer.npc.name}
         </div>
+        <div>{parseMsToTime(timeLeft)}</div>
       </div>
-
-      <div className="col">
-        <div className="time cell">
-          <div className="time-val">{parseMsToTime(timeLeft)}</div>
-        </div>
-      </div>
-    </div>
+    </TimerTile>
   );
 };

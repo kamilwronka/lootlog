@@ -1,7 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalEnv": ["RABBITMQ_URI"],
+  "globalEnv": [
+    "RABBITMQ_URI",
+    "ENV",
+    "PORT",
+    "HOSTNAME",
+    "AXIOM_DATASET",
+    "AXIOM_TOKEN"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -27,6 +34,10 @@
     },
     "api:generate": {
       "cache": false
+    },
+    "api:studio": {
+      "cache": false,
+      "interactive": false
     },
     "auth:migrate:dev": {
       "cache": false,
