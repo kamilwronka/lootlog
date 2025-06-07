@@ -8,6 +8,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { RabbitMQConfig, RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { ConfigService } from '@nestjs/config';
 import { ConfigKey } from 'src/config/config-key.enum';
+import { UserLootlogConfigModule } from 'src/user-lootlog-config/user-lootlog-config.module';
 
 @Module({
   imports: [
@@ -16,12 +17,10 @@ import { ConfigKey } from 'src/config/config-key.enum';
     GuildsModule,
     RabbitMQModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
-        const config = configService.get<RabbitMQConfig>(ConfigKey.RABBITMQ);
-
-        return config;
-      },
+      useFactory: async (configService: ConfigService) =>
+        configService.get<RabbitMQConfig>(ConfigKey.RABBITMQ),
     }),
+    UserLootlogConfigModule,
   ],
   providers: [TimersService, PrismaService],
   controllers: [TimersController],

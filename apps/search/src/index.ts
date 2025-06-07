@@ -3,7 +3,11 @@ import { Hono } from "hono";
 import { APP_CONFIG } from "./config/app.config.js";
 import { players } from "./players/players.controller.js";
 import { logger } from "hono/logger";
-import { userMetadataFromHeaders } from "@lootlog/api-helpers/lib/auth/middleware/user-metadata.middleware";
+import { userMetadataFromHeaders } from "@lootlog/api-helpers";
+import { setupAMQP } from "./lib/rabbitmq.js";
+import { setupPlayersHandlers } from "./players/players.handlers.js";
+import { npcs } from "./npcs/npcs.controller.js";
+import { setupNpcsHandlers } from "./npcs/npcs.handlers.js";
 
 const app = new Hono<{
   Variables: {
@@ -12,10 +16,20 @@ const app = new Hono<{
   };
 }>();
 
+await setupAMQP();
+
 app.use("*", logger());
 app.use("*", userMetadataFromHeaders);
 
+app.get("/healthz", (c) => {
+  return c.text("Healthy");
+});
+
 app.route("/players", players);
+await setupPlayersHandlers();
+
+app.route("/npcs", npcs);
+await setupNpcsHandlers();
 
 const port = APP_CONFIG.port;
 

@@ -11,6 +11,8 @@ import { ErrorKey } from 'src/timers/enum/error-key.enum';
 import { RoutingKey } from 'src/timers/enum/routing-key.enum';
 import { omit } from 'lodash';
 import { GuildsService } from 'src/guilds/guilds.service';
+import { GetTimersDto } from 'src/timers/dto/get-timers.dto';
+import { UserLootlogConfigService } from 'src/user-lootlog-config/user-lootlog-config.service';
 
 @Injectable()
 export class TimersService {
@@ -18,10 +20,24 @@ export class TimersService {
     private readonly prisma: PrismaService,
     private readonly amqpConnection: AmqpConnection,
     private readonly guildsService: GuildsService,
+    private readonly userLootlogConfigService: UserLootlogConfigService,
   ) {}
 
   async createTimer(discordId: string, guildId: string, data: CreateTimerDto) {
     const now = new Date();
+    const config =
+      await this.userLootlogConfigService.getLootlogCharacterConfig(
+        discordId,
+        data.accountId,
+        data.characterId,
+      );
+
+    if (config?.addTimersBlacklistGuildIds?.includes(guildId)) {
+      return { message: ErrorKey.BLACKLISTED_GUILD };
+    }
+
+    if (data.npc.wt < 19)
+      throw new BadRequestException({ message: ErrorKey.WT_TOO_LOW });
 
     const { minSpawnTime, maxSpawnTime } = this.calculateRespawnTime(
       data.respBaseSeconds,
@@ -130,7 +146,35 @@ export class TimersService {
     return newTimer;
   }
 
-  async getTimers(discordId: string, world: string) {
+  async getTimers({ world, guildId }: GetTimersDto) {
+    const now = new Date();
+    const timers = await this.prisma.timer.findMany({
+      where: {
+        guildId: guildId,
+        maxSpawnTime: { gt: now.toISOString() },
+        world,
+        // ...(permissions.includes(Permission.LOOTLOG_READ_TIMERS_TITANS)
+        //   ? {}
+        //   : {
+        //       npc: {
+        //         type: {
+        //           not: NpcType.TITAN,
+        //         },
+        //       },
+        //     }),
+      },
+      orderBy: {
+        maxSpawnTime: 'desc',
+      },
+      include: {
+        member: true,
+      },
+    });
+
+    return timers;
+  }
+
+  async getTimersMerged(discordId: string, { world }: GetTimersDto) {
     const now = new Date();
     const guilds = await this.guildsService.getGuildsForRequiredPermissions(
       discordId,

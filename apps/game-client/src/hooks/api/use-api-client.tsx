@@ -7,10 +7,19 @@ export const useAuthenticatedApiClient = () => {
 
   const client = axios.create({
     baseURL: API_URL,
+    withCredentials: true,
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   return { client, hasToken: !!token };
+};
+
+export const useApiClient = () => {
+  const client = axios.create({
+    baseURL: API_URL,
+  });
+
+  return { client };
 };

@@ -9,6 +9,14 @@ export type WidgetButtonOptions = {
   keyName?: string;
 };
 
+export type SIWidgetButtonOptions = {
+  callback: () => void;
+  tooltip: string;
+  letter: string;
+  right?: number;
+  top?: number;
+};
+
 export const createWidgetButton = ({
   callback,
   tooltip,
@@ -52,4 +60,30 @@ export const createWidgetButton = ({
         }`;
     document.head.appendChild(iconStyle);
   }
+};
+
+export const createSIWidgetButton = ({
+  callback,
+  tooltip,
+  top = 0,
+  right = 0,
+  letter = "L",
+}: SIWidgetButtonOptions) => {
+  const container = document.querySelector("#bground");
+  if (!container) return;
+
+  const button = document.createElement("div");
+  button.onclick = callback;
+
+  button.style.left = `${right}px`;
+  button.style.position = "absolute";
+  button.style.top = `${top}px`;
+  button.style.zIndex = "500";
+  button.setAttribute("tip", tooltip);
+  button.className =
+    "ll-custom-cursor-pointer ll-h-[24px] ll-w-[24px] ll-bg-gray-600/50 ll-border-solid ll-border ll-border-gray-300/50 ll-flex ll-items-center ll-justify-center ll-font-sans ll-text-sm";
+
+  button.innerHTML = letter;
+
+  container.appendChild(button);
 };

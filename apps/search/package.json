@@ -10,18 +10,19 @@
     "build": "pkgroll"
   },
   "dependencies": {
-    "@lootlog/api-helpers": "workspace:*",
     "@hono/node-server": "^1.13.8",
+    "@lootlog/api-helpers": "workspace:*",
     "amqplib": "^0.10.5",
     "dotenv": "^16.4.7",
     "hono": "^4.7.0",
     "jwks-rsa": "^3.1.0",
-    "meilisearch": "^0.48.2",
+    "meilisearch": "^0.50.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@lootlog/types": "workspace:*",
     "@lootlog/typescript-config": "workspace:*",
+    "@types/amqplib": "^0.10.7",
     "@types/node": "^22.13.1",
     "pkgroll": "^2.8.2",
     "tsx": "^4.19.2"

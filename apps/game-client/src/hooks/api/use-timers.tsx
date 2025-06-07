@@ -4,7 +4,10 @@ import { useAuthenticatedApiClient } from "@/hooks/api/use-api-client";
 import { GuildMember } from "@/hooks/api/use-guild-members";
 import { Npc } from "@/hooks/api/use-npcs";
 import { API_URL } from "@/config/api";
-import { useGlobalContext } from "@/contexts/global-context";
+
+export type UseTimersOptions = {
+  world?: string;
+};
 
 export type Timer = {
   id: number;
@@ -12,15 +15,11 @@ export type Timer = {
   maxSpawnTime: Date;
   npc: Npc;
   member: GuildMember;
+  world: string;
 };
 
-export const useTimers = () => {
+export const useTimers = ({ world }: UseTimersOptions) => {
   const { client, hasToken } = useAuthenticatedApiClient();
-  const { newInterface } = useGlobalContext();
-
-  const world = newInterface
-    ? window.Engine?.worldConfig?.getWorldName()
-    : window.g?.worldConfig?.getWorldName();
 
   const queryParams = {
     world,
@@ -31,7 +30,7 @@ export const useTimers = () => {
   const query = useQuery({
     queryKey: ["guild-timers", world],
     queryFn: () => client.get<Timer[]>(`${API_URL}/timers?${queryString}`),
-    enabled: !!hasToken && !!world,
+    enabled: !!world && hasToken,
     select: (response) => response.data,
   });
 

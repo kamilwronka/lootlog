@@ -43,6 +43,7 @@ export const SingleTimer: FC<SingleTimerProps> = ({ timer }) => {
 
   const isMinSpawnTime = minSpawnTime - Date.now() < 0;
   const hasPassedRedThreshold = timeLeft < THRESHOLD;
+  const imageHasDomain = timer.npc.icon?.startsWith("https://"); // @TODO: temporary fix for icons with full URL
 
   return (
     <div className="flex flex-row justify-between px-2 py-2 gap-3 min-h-12 items-center hover:bg-accent cursor-pointer">
@@ -59,7 +60,7 @@ export const SingleTimer: FC<SingleTimerProps> = ({ timer }) => {
           <div className="w-8">
             <img
               className={"relative cursor-pointer rounded-lg max-h-10 max-w-8"}
-              src={`${MARGONEM_CDN_NPCS_URL}/${timer.npc.icon}`}
+              src={`${imageHasDomain ? "" : MARGONEM_CDN_NPCS_URL}${timer.npc.icon}`}
               alt={timer.npc.name}
             />
           </div>

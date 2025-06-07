@@ -65,21 +65,29 @@
   }
 }
 
-@layer base {
-  * {
-    @apply ll-border-border;
-  }
-  body {
-    @apply ll-bg-background ll-text-foreground;
-  }
-}
-
 body {
   background-color: #000;
 }
 
+body.si {
+  background-color: #000;
+  color: #fff;
+}
+
+body.si > #lootlog-root {
+  z-index: 499 !important;
+}
+
+#lootlog-root {
+  z-index: 500;
+}
+
 #lootlog-root > * {
   pointer-events: auto;
+}
+
+#lootlog-root * {
+  font-family: Arimo, Calibri, Segoe;
 }
 
 .ll-custom-cursor-pointer {

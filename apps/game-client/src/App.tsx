@@ -1,62 +1,77 @@
 import { Timers } from "@/features/timers/timers";
 import { Settings } from "@/features/settings/settings";
 import { useGameEventsParser } from "@/hooks/use-game-events-parser";
-import { useGlobalContext } from "./contexts/global-context";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { createWidgetButton } from "@/utils/game/create-widget-button";
+import { useEffect, useState } from "react";
+import {
+  createSIWidgetButton,
+  createWidgetButton,
+} from "@/utils/game/create-widget-button";
 import { Chat } from "@/features/chat/chat";
+import { useGlobalStore } from "@/store/global.store";
+import { useInitialConfiguration } from "@/hooks/use-initial-configuration";
+import { useWindowsStore } from "@/store/windows.store";
 
 function App() {
   useGameEventsParser();
-  const { initialized } = useGlobalContext();
-  const {
-    lootlogWindowOpen,
-    setLootlogWindowOpen,
-    setChatWindowOpen,
-    newInterface,
-    chatWindowOpen,
-  } = useGlobalContext();
+  useInitialConfiguration();
+
+  const { gameInitialized, gameInterface } = useGlobalStore(
+    (state) => state.gameState
+  );
+  const { toggleOpen } = useWindowsStore();
   const [isWidgetLoaded, setisWidgetLoaded] = useState(false);
 
-  const lootlogWindowOpenRef = useRef(lootlogWindowOpen);
-  lootlogWindowOpenRef.current = lootlogWindowOpen;
-
-  const chatWindowOpenRef = useRef(chatWindowOpen);
-  chatWindowOpenRef.current = chatWindowOpen;
-
-  const handleLootlogWindowToggle = useCallback(() => {
-    setLootlogWindowOpen(!lootlogWindowOpenRef.current);
-    lootlogWindowOpenRef.current = !lootlogWindowOpenRef.current;
-  }, []);
-
-  const handleChatWindowToggle = useCallback(() => {
-    setChatWindowOpen(!chatWindowOpenRef.current);
-    chatWindowOpenRef.current = !chatWindowOpenRef.current;
-  }, []);
-
   useEffect(() => {
-    if (newInterface && !isWidgetLoaded) {
+    if (!isWidgetLoaded && gameInterface && gameInitialized) {
       setisWidgetLoaded(true);
 
-      createWidgetButton({
-        id: "lootlog",
-        tooltip: "Lootlog",
-        callback: handleLootlogWindowToggle,
-        type: "violet",
-      });
+      if (gameInterface === "ni") {
+        createWidgetButton({
+          id: "timers",
+          tooltip: "Lootlog",
+          callback: () => toggleOpen("timers"),
+          type: "violet",
+        });
 
-      createWidgetButton({
-        id: "lootlog-chat chat",
-        tooltip: "Lootlog Chat",
-        type: "violet",
-        callback: handleChatWindowToggle,
-        keyName: "chat",
-      });
+        createWidgetButton({
+          id: "lootlog-chat chat",
+          tooltip: "Lootlog Chat",
+          type: "violet",
+          callback: () => toggleOpen("chat"),
+          keyName: "chat",
+        });
+
+        createWidgetButton({
+          id: "lootlog-settings config",
+          tooltip: "Ustawienia lootloga",
+          type: "violet",
+          callback: () => toggleOpen("settings"),
+          keyName: "settings",
+        });
+      } else {
+        createSIWidgetButton({
+          callback: () => toggleOpen("timers"),
+          tooltip: "Lootlog",
+          letter: "L",
+        });
+        createSIWidgetButton({
+          callback: () => toggleOpen("chat"),
+          tooltip: "Lootlog chat",
+          top: 30,
+          letter: "C",
+        });
+        createSIWidgetButton({
+          callback: () => toggleOpen("settings"),
+          tooltip: "Ustawienia lootloga",
+          top: 60,
+          letter: "U",
+        });
+      }
     }
-  }, [newInterface, isWidgetLoaded]);
+  }, [gameInterface, isWidgetLoaded, gameInitialized]);
 
   return (
-    initialized && (
+    gameInitialized && (
       <>
         <Timers />
         <Settings />
